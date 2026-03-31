@@ -1028,8 +1028,27 @@ func (v *validator) buildProposerPreferences(
 	km keymanager.IKeymanager,
 	slot primitives.Slot,
 ) []*ethpb.SignedProposerPreferences {
-	if slots.ToEpoch(slot) < params.BeaconConfig().GloasForkEpoch {
+	currentEpoch := slots.ToEpoch(slot)
+	gloasEpoch := params.BeaconConfig().GloasForkEpoch
+	if currentEpoch+1 < gloasEpoch {
 		return nil
+	}
+	// In the epoch before gloas, wait until mid-epoch so the gossip mesh
+	// has time to stabilize after the fork_watcher subscribes to gloas topics.
+	if currentEpoch+1 == gloasEpoch {
+		epochStart, err := slots.EpochStart(currentEpoch)
+		if err != nil {
+			return nil
+		}
+		midEpoch := epochStart + params.BeaconConfig().SlotsPerEpoch/2
+		if slot < midEpoch {
+			log.WithFields(logrus.Fields{
+				"slot":     slot,
+				"midEpoch": midEpoch,
+			}).Debug("Waiting for mid-epoch before submitting proposer preferences")
+			return nil
+		}
+		log.WithField("slot", slot).Info("Mid-epoch reached, submitting pre-fork proposer preferences")
 	}
 
 	v.dutiesLock.RLock()
