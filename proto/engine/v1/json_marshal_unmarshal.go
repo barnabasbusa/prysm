@@ -1698,6 +1698,11 @@ func (e *ExecutionBundleGloas) UnmarshalJSON(enc []byte) error {
 	}
 	e.Payload.SlotNumber = primitives.Slot(*dec.ExecutionPayload.SlotNumber)
 
+	if dec.ExecutionPayload.SlotNumber == nil {
+		return errors.New("missing required field 'slotNumber' for ExecutionPayload")
+	}
+	e.Payload.SlotNumber = primitives.Slot(*dec.ExecutionPayload.SlotNumber)
+
 	v, err := hexutil.DecodeBig(dec.BlockValue)
 	if err != nil {
 		return err
