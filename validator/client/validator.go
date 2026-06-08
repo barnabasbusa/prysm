@@ -1067,6 +1067,15 @@ func (v *validator) buildProposerPreferences(
 		return nil
 	}
 
+	// Defer until gloas-active so the pre-gloas registration path still sees BuilderConfig.
+	if currentEpoch >= gloasEpoch {
+		ps := v.ProposerSettings()
+		if ps.UpgradeToV2() {
+			if err := v.SetProposerSettings(ctx, ps); err != nil {
+				log.WithError(err).Warn("Failed to persist v1->v2 proposer settings upgrade")
+			}
+		}
+	}
 	var signedPrefs []*ethpb.SignedProposerPreferences
 	var sigFailCount int
 
