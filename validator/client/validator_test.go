@@ -2997,7 +2997,8 @@ func TestValidator_buildProposerPreferences_GasLimitSources(t *testing.T) {
 			}
 			root := make([]byte, fieldparams.RootLength)
 			root[0] = 1
-			v.duties.SetFromCombinedDutiesResponse(&ethpb.ValidatorDutiesContainer{
+			var data dutyStoreData
+			data.setFromContainer(&ethpb.ValidatorDutiesContainer{
 				PrevDependentRoot: root,
 				CurrDependentRoot: root,
 				CurrentEpochDuties: []*ethpb.ValidatorDuty{{
@@ -3008,6 +3009,7 @@ func TestValidator_buildProposerPreferences_GasLimitSources(t *testing.T) {
 					ProposerSlots: []primitives.Slot{nextEpochProposerSlot},
 				}},
 			})
+			v.duties.write(data)
 
 			prefs := v.buildProposerPreferences(t.Context(), km, midEpochSlot, false)
 			require.Equal(t, 1, len(prefs))

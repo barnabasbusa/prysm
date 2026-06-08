@@ -1201,29 +1201,23 @@ func (v *validator) releasePrefSlot(proposalSlot primitives.Slot) {
 }
 
 // proposerConfigForKey returns the fee recipient and gas limit for pk, using the
-// per-key proposer config when present and otherwise the defaults.
+// per-key proposer config when present and otherwise the defaults. Gas limit is
+// sourced via Settings.GasLimit so v1 (BuilderConfig.GasLimit) and v2
+// (Option.GasLimit) schemas are both honored.
 func (v *validator) proposerConfigForKey(pk pubkey) (common.Address, uint64) {
 	feeRecipient := common.HexToAddress(params.BeaconConfig().EthBurnAddressHex)
-	gasLimit := params.BeaconConfig().DefaultBuilderGasLimit
 	ps := v.ProposerSettings()
+	gasLimit := uint64(ps.GasLimit(pk))
 	if ps == nil {
 		return feeRecipient, gasLimit
 	}
-	if ps.DefaultConfig != nil {
-		if ps.DefaultConfig.FeeRecipientConfig != nil {
-			feeRecipient = ps.DefaultConfig.FeeRecipientConfig.FeeRecipient
-		}
-		if ps.DefaultConfig.BuilderConfig != nil && ps.DefaultConfig.BuilderConfig.Enabled {
-			gasLimit = uint64(ps.DefaultConfig.BuilderConfig.GasLimit)
-		}
+	if ps.DefaultConfig != nil && ps.DefaultConfig.FeeRecipientConfig != nil {
+		feeRecipient = ps.DefaultConfig.FeeRecipientConfig.FeeRecipient
 	}
 	if ps.ProposeConfig != nil {
 		if config, ok := ps.ProposeConfig[pk]; ok && config != nil {
 			if config.FeeRecipientConfig != nil {
 				feeRecipient = config.FeeRecipientConfig.FeeRecipient
-			}
-			if config.BuilderConfig != nil && config.BuilderConfig.Enabled {
-				gasLimit = uint64(config.BuilderConfig.GasLimit)
 			}
 		}
 	}
