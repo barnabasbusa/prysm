@@ -84,6 +84,19 @@ func TestLogSubmittedAtts(t *testing.T) {
 	})
 }
 
+func TestFromAttData(t *testing.T) {
+	att := util.HydrateAttestation(&ethpb.Attestation{})
+	key := submittedAttKey{}
+	require.NoError(t, key.FromAttData(att.Data))
+	assert.NotEqual(t, submittedAttKey{}, key, "key not populated from att data")
+
+	att2 := util.HydrateAttestation(&ethpb.Attestation{})
+	att2.Data.BeaconBlockRoot = bytesutil.PadTo([]byte("different root"), 32)
+	key2 := submittedAttKey{}
+	require.NoError(t, key2.FromAttData(att2.Data))
+	assert.NotEqual(t, key, key2, "distinct att data must produce distinct keys")
+}
+  
 func TestLogSubmittedSyncCommitteeMessages(t *testing.T) {
 	logHook := logTest.NewGlobal()
 	v := validator{}
