@@ -1100,6 +1100,11 @@ func (b *BeaconState) HashTreeRoot(ctx context.Context) ([32]byte, error) {
 
 	b.lock.Lock()
 	defer b.lock.Unlock()
+
+	if features.ProgressiveSSZEnabled(b.version) {
+		return b.progressiveHashTreeRoot(ctx)
+	}
+
 	if err := b.initializeMerkleLayers(ctx); err != nil {
 		return [32]byte{}, err
 	}
@@ -1107,6 +1112,29 @@ func (b *BeaconState) HashTreeRoot(ctx context.Context) ([32]byte, error) {
 		return [32]byte{}, err
 	}
 	return bytesutil.ToBytes32(b.merkleLayers[len(b.merkleLayers)-1][0]), nil
+}
+
+func (b *BeaconState) progressiveHashTreeRoot(ctx context.Context) ([32]byte, error) {
+	fieldRoots, err := ComputeFieldRootsWithHasher(ctx, b)
+	if err != nil {
+		return [32]byte{}, errors.Wrap(err, "failed to compute state field roots")
+	}
+
+	progressiveFieldRoots := make([][32]byte, len(fieldRoots))
+	for i, fieldRoot := range fieldRoots {
+		progressiveFieldRoots[i] = bytesutil.ToBytes32(fieldRoot)
+	}
+
+	activeFields := make([]bool, len(fieldRoots))
+	for i := range activeFields {
+		activeFields[i] = true
+	}
+
+	root, err := ssz.ContainerRootProgressive(progressiveFieldRoots, activeFields)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("could not compute progressive container root: %w", err)
+	}
+	return root, nil
 }
 
 // Initializes the Merkle layers for the beacon state if they are empty.
