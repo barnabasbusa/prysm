@@ -89,16 +89,16 @@ func SliceRootProgressive[T Hashable](slice []T) ([32]byte, error) {
 // ByteSliceRootProgressive computes the progressive list root of a byte slice
 // interpreted as ProgressiveByteList (alias of ProgressiveList[byte]).
 func ByteSliceRootProgressive(slice []byte) ([32]byte, error) {
-	var chunks [][32]byte
+	var bytesRoot [32]byte
 	if len(slice) > 0 {
-		var err error
-		chunks, err = PackByChunk([][]byte{slice})
-		if err != nil {
-			return [32]byte{}, err
+		numChunks := (len(slice) + 31) / 32
+		chunks := make([][32]byte, numChunks)
+		for i := range chunks {
+			copy(chunks[i][:], slice[i*BytesPerChunk:])
 		}
+		bytesRoot = MerkleizeProgressiveChunks(chunks)
 	}
 
-	bytesRoot := MerkleizeProgressiveChunks(chunks)
 	var length [32]byte
 	binary.LittleEndian.PutUint64(length[:8], uint64(len(slice)))
 	return MixInLength(bytesRoot, length[:]), nil
