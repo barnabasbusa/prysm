@@ -29,7 +29,6 @@ type beaconApiValidatorClient struct {
 	restProvider            rest.RestConnectionProvider
 	handler                 rest.Handler
 	nodeClient              *beaconApiNodeClient
-	beaconBlockConverter    BeaconBlockConverter
 	eventStreamGuard        event.StreamGuard
 	stateless               bool
 	envelopeCache           *cache.ExecutionPayloadEnvelopeCache
@@ -49,7 +48,6 @@ func NewBeaconApiValidatorClient(provider rest.RestConnectionProvider, opts ...i
 		restProvider:            provider,
 		handler:                 handler,
 		nodeClient:              nc,
-		beaconBlockConverter:    beaconApiBeaconBlockConverter{},
 		stateless:               cfg.Stateless,
 	}
 	if cfg.Stateless {
@@ -222,10 +220,6 @@ func (c *beaconApiValidatorClient) ProposeExit(ctx context.Context, in *ethpb.Si
 	return wrapInMetrics[*ethpb.ProposeExitResponse]("ProposeExit", func() (*ethpb.ProposeExitResponse, error) {
 		return c.proposeExit(ctx, in)
 	})
-}
-
-func (c *beaconApiValidatorClient) StreamBlocksAltair(ctx context.Context, in *ethpb.StreamBlocksRequest) (ethpb.BeaconNodeValidator_StreamBlocksAltairClient, error) {
-	return c.streamBlocks(ctx, in, time.Second), nil
 }
 
 func (c *beaconApiValidatorClient) SubmitAggregateSelectionProof(ctx context.Context, in *ethpb.AggregateSelectionRequest, index primitives.ValidatorIndex, committeeLength uint64) (*ethpb.AggregateSelectionResponse, error) {
